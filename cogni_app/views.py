@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from .models import Reserva
+from .models import Reserva, User
 
 
 class DashboardTerapeutaView(LoginRequiredMixin, ListView):
@@ -32,7 +32,7 @@ class SoloTerapeutaMixin(UserPassesTestMixin):
 
 def perfil_paciente(request, paciente_id):
     paciente = get_object_or_404(User, id=paciente_id)
-    perfil = paciente.perfil_paciente # Acceso directo gracias al related_name
+    perfil = paciente.perfil_paciente 
     
     context = {
         'paciente': paciente,
