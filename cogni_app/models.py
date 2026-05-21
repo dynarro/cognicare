@@ -26,6 +26,13 @@ class PerfilPaciente(models.Model):
     informe_medico_inicial = models.FileField(upload_to='informes_medicos/', null=True, blank=True)
     patologias_previas = models.TextField(blank=True, help_text="Ej: Alzheimer precoz, Parkinson, etc.")
     observaciones_familiares = models.TextField(blank=True, help_text="Datos que la familia considere relevantes")
+    terapeuta = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,  # Si el terapeuta se borra, el paciente NO se borra
+        related_name='pacientes_asignados',
+        null=True,                  # Permite estar vacío (sin asignar)
+        blank=True
+    )
 
     @property
     def edad(self):

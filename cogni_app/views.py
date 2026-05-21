@@ -4,6 +4,8 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db.models import Q
+from django.utils import timezone
 from .models import Reserva, User, PerfilPaciente, Progreso
 from .forms import ProgresoForm
 
@@ -15,18 +17,43 @@ class DashboardTerapeutaView(LoginRequiredMixin, ListView):
     context_object_name = 'mis_citas'
 
     def get_queryset(self):
+        ahora = timezone.now()
         # Retorna solo las reservas donde el terapeuta es el usuario actual
         return Reserva.objects.filter(
             terapeuta=self.request.user, 
-            completada=False
+            completada=False,
+            fecha__gte=ahora # __gte significa "Greater Than or Equal" (Mayor o igual a ahora)
         ).order_by('fecha')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Obtenemos usuarios únicos que han tenido reservas con este terapeuta
         context['mis_pacientes'] = User.objects.filter(
-            citas_paciente__terapeuta=self.request.user
+            Q(citas_paciente__terapeuta=self.request.user) | 
+            Q(perfil_paciente__terapeuta=self.request.user)
         ).distinct()
+        
+        # IDs de pacientes que YA tienen terapeuta fijo en su perfil
+        con_terapeuta_fijo = PerfilPaciente.objects.filter(
+            terapeuta__isnull=False
+        ).values_list('usuario_id', flat=True)
+        
+        # IDs de pacientes que YA tienen al menos una cita (Reserva) registrada
+        con_citas_existentes = User.objects.filter(
+            citas_paciente__isnull=False
+        ).values_list('id', flat=True)
+        
+        # pacientes libres excluyendo los dos grupos anteriores
+        context['pacientes_sin_asignar'] = User.objects.filter(
+            perfil_paciente__isnull=False # Asegura que tengan un perfil creado
+        ).exclude(
+            id__in=con_terapeuta_fijo       # Excluye si ya tienen terapeuta en el perfil
+        ).exclude(
+            id__in=con_citas_existentes    # Excluye si ya tienen citas en el sistema
+        ).exclude(
+            id=self.request.user.id        # Evita mostrar al propio terapeuta
+        ).distinct()
+
         return context
 
 
@@ -112,3 +139,20 @@ def nueva_sesion(request, paciente_id):
         'form': form,
     }
     return render(request, 'terapeuta/nueva_sesion.html', context)
+
+@login_required
+def autoasignar_paciente(request, paciente_id):
+    if request.method == 'POST':
+        # Buscamos el perfil del paciente que se quiere asignar
+        # NOTA: Asegúrate de que el campo en tu modelo se llame 'terapeuta' 
+        perfil = get_object_or_404(PerfilPaciente, usuario_id=paciente_id)
+    
+        # Validamos que realmente no tenga a nadie asignado aún (por seguridad)
+        if perfil.terapeuta is None:
+            perfil.terapeuta = request.user  # El terapeuta actual
+            perfil.save()
+            messages.success(request, f"¡Te has asignado correctamente a {perfil.usuario.get_full_name()}!")
+        else:
+            messages.error(request, "Este paciente ya fue asignado a otro profesional.")
+        
+    return redirect('dashboard')

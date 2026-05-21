@@ -5,4 +5,5 @@ urlpatterns = [
     path('paciente/<int:paciente_id>/', views.perfil_paciente, name='perfil_paciente'),
     path('', views.DashboardTerapeutaView.as_view(), name='dashboard'),
     path('paciente/<int:paciente_id>/nueva-sesion/', views.nueva_sesion, name='nueva_sesion'),
+    path('paciente/<int:paciente_id>/asignarme/', views.autoasignar_paciente, name='autoasignar_paciente'),
 ]
