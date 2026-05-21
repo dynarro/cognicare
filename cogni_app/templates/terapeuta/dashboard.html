@@ -1,0 +1,26 @@
+<h2>Próximas Sesiones de CogniCare</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Paciente</th>
+            <th>Tratamiento</th>
+            <th>Fecha y Hora</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for cita in mis_citas %}
+        <tr>
+            <td>{{ cita.paciente.get_full_name }}</td>
+            <td>{{ cita.tratamiento.nombre }}</td>
+            <td>{{ cita.fecha|date:"d/m/Y H:i" }}</td>
+            <td>
+                <a href="{% url 'anotar_progreso' cita.id %}">Anotar Progreso</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4">No tienes citas pendientes hoy.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
