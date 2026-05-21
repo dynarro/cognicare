@@ -41,26 +41,44 @@
                 </div>
             </div>
 
-            <div class="card shadow-sm">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Historial de Evolución</h5>
-                    <a href="{% url 'nueva_sesion' paciente.id %}" class="btn btn-success btn-sm">+ Nueva Nota</a>
+            <div class="card shadow-sm border-0 bg-white mt-4">
+                <div class="card-header bg-white pt-3 pb-0 border-0">
+                    <h5 class="fw-bold text-dark">
+                        <i class="bi bi-graph-up-arrow text-success me-2"></i>Historial de Evolución Cognitiva
+                    </h5>
                 </div>
                 <div class="card-body">
-                    <div class="list-group list-group-flush">
-                        {% for nota in progresos %}
-                        <div class="list-group-item">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h6 class="mb-1">Sesión: {{ nota.reserva.tratamiento.nombre }}</h6>
-                                <small class="text-muted">{{ nota.fecha_creacion|date:"d M Y" }}</small>
-                            </div>
-                            <p class="mb-1">{{ nota.observaciones|truncatewords:20 }}</p>
-                            <small class="text-primary">Puntuación Cognitiva: <strong>{{ nota.desempeno_puntos }}/10</strong></small>
+                    {% if historial_progreso %}
+                        <div class="timeline-container">
+                            {% for registro in historial_progreso %}
+                                <div class="p-3 mb-3 rounded-3 bg-light border-start border-4 {% if registro.desempeno_puntos >= 7 %}border-success{% elif registro.desempeno_puntos >= 5 %}border-warning{% else %}border-danger{% endif %}">
+                                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
+                                        <div>
+                                            <span class="fw-bold text-dark">Sesión de {{ registro.reserva.tratamiento.nombre }}</span>
+                                            <small class="text-muted ms-2">
+                                                <i class="bi bi-calendar3"></i> {{ registro.reserva.fecha|date:"d M, Y" }}
+                                            </small>
+                                        </div>
+                                        <!-- Puntuación destacada -->
+                                        <div>
+                                            <span class="badge {% if registro.desempeno_puntos >= 7 %}bg-success{% elif registro.desempeno_puntos >= 5 %}bg-warning text-dark{% else %}bg-danger{% endif %} px-2 py-1 fs-6">
+                                                Puntos: {{ registro.desempeno_puntos }}/10
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <p class="mb-0 text-secondary small style-quote" style="white-space: pre-line;">
+                                        <strong>Notas del terapeuta:</strong><br>
+                                        {{ registro.observaciones|default:"Sin observaciones registradas." }}
+                                    </p>
+                                </div>
+                            {% endfor %}
                         </div>
-                        {% empty %}
-                        <p class="text-center text-muted">Aún no hay registros de progreso para este paciente.</p>
-                        {% endfor %}
-                    </div>
+                    {% else %}
+                        <!-- Mensaje por si está vacío -->
+                        <div class="text-center py-4">
+                            <p class="text-muted mb-0">Este paciente aún no registra ninguna sesión evaluada.</p>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrar Sesión - CogniCare{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8">
+        
+        <!-- Botón Volver -->
+        <a href="{% url 'perfil_paciente' paciente.id %}" class="btn btn-link text-secondary p-0 mb-3 text-decoration-none">
+            <i class="bi bi-arrow-left"></i> Volver al perfil del paciente
+        </a>
+
+        <div class="card shadow-sm border-0 bg-white">
+            <div class="card-header bg-white pt-4 pb-2 border-0">
+                <span class="badge bg-success-subtle text-success mb-2">Paso Final de Cita</span>
+                <h3 class="card-title fw-bold text-dark">Registrar Evolución Cognitiva</h3>
+                <p class="text-muted mb-0">Paciente: <strong>{{ paciente.get_full_name }}</strong></p>
+                {% if reserva %}
+                    <p class="text-muted small">Tratamiento actual: <span class="text-primary fw-semibold">{{ reserva.tratamiento.nombre }}</span></p>
+                {% endif %}
+            </div>
+            
+            <div class="card-body pt-0">
+                <hr class="text-muted opacity-25 my-3">
+                
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Campo: Puntuación Cognitiva (Destacado visualmente) -->
+                    <div class="text-center bg-light p-4 rounded-3 mb-4">
+                        <label for="{{ form.desempeno_puntos.id_for_label }}" class="form-label fw-bold d-block text-secondary">
+                            <i class="bi bi-star-fill text-warning me-1"></i> {{ form.desempeno_puntos.label }}
+                        </label>
+                        {{ form.desempeno_puntos }}
+                        {% if form.desempeno_puntos.errors %}
+                            <div class="text-danger small mt-2">{{ form.desempeno_puntos.errors }}</div>
+                        {% endif %}
+                        <small class="text-muted d-block mt-2">Evalúa el rendimiento general del paciente en los ejercicios de hoy.</small>
+                    </div>
+
+                    <!-- Campo: Observaciones -->
+                    <div class="mb-4">
+                        <label for="{{ form.observaciones.id_for_label }}" class="form-label fw-bold text-secondary">
+                            <i class="bi bi-journal-text text-info me-1"></i> {{ form.observaciones.label }}
+                        </label>
+                        {{ form.observaciones }}
+                        {% if form.observaciones.errors %}
+                            <div class="text-danger small mt-2">{{ form.observaciones.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a href="{% url 'dashboard' %}" class="btn btn-light px-4 border">Cancelar</a>
+                        <button type="submit" class="btn btn-success px-5 text-white fw-bold" style="background-color: #2a9d8f; border: none;">
+                            <i class="bi bi-cloud-arrow-up-fill me-2"></i> Guardar Reporte Clínico
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+        
+    </div>
+</div>
+{% endblock %}

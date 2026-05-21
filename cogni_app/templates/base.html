@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CogniCare{% endblock %}</title>
+    
+    <!-- CSS de Bootstrap 5 (Estilo limpio y moderno) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Iconos de Bootstrap -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <!-- Google Fonts: Una tipografía muy legible -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f4f7f6; /* Un gris verdoso muy suave que descansa la vista */
+            color: #2c3e50;
+        }
+        .navbar {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        }
+        .navbar-brand {
+            font-weight: 700;
+            color: #2a9d8f !important; /* Verde turquesa característico de apps de salud */
+            font-size: 1.4rem;
+        }
+        .nav-link {
+            font-weight: 600;
+            color: #4a5568 !important;
+        }
+        .nav-link:hover {
+            color: #2a9d8f !important;
+        }
+        footer {
+            background-color: #ffffff;
+            color: #718096;
+            font-size: 0.9rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        /* Tarjetas estilizadas por defecto para todo el sitio */
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+        }
+    </style>
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+    <!-- Barra de Navegación superior -->
+    <nav class="navbar navbar-expand-lg py-3 mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="bi bi-heart-pulse-fill me-2"></i>CogniCare
+            </a>
+            <button class="navbar-expand navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav align-items-center">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <span class="nav-link me-3 text-secondary small">
+                                <i class="bi bi-person-circle me-1"></i> Hola, {{ user.first_name|default:user.username }}
+                                {% if user.is_terapeuta %}
+                                    <span class="badge bg-success-subtle text-success ms-1">Terapeuta</span>
+                                {% endif %}
+                            </span>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'dashboard' %}">
+                                <i class="bi bi-house-door me-1"></i> Inicio
+                            </a>
+                        </li>
+                        <!-- Enlace de cierre de sesión adaptado a Django estándar -->
+                        <li class="nav-item ms-lg-3">
+                            <form action="{% url 'logout' %}" method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <i class="bi bi-box-arrow-right"></i> Salir
+                                </button>
+                            </form>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="btn btn-primary btn-sm px-3" href="{% url 'login' %}" style="background-color: #2a9d8f; border: none;">
+                                Iniciar Sesión
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenedor Principal Dinámico -->
+    <main class="flex-grow-1">
+        <div class="container">
+            <!-- Bloque para mensajes del sistema (ej: "Progreso guardado con éxito") -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- AQUÍ SE INSERTARÁ EL CONTENIDO DE TUS OTRAS VISTAS -->
+            {% block content %}
+            {% endblock %}
+        </div>
+    </main>
+
+    <!-- Pie de página simple -->
+    <footer class="text-center py-4 mt-5">
+        <div class="container">
+            <p class="mb-0">&copy; 2026 CogniCare — Sistema de Desarrollo Cognitivo Adultos Mayores.</p>
+        </div>
+    </footer>
+
+    <!-- JS de Bootstrap (Necesario para que las alertas y menús desplegables funcionen) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

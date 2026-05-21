@@ -1,26 +1,132 @@
-<h2>Próximas Sesiones de CogniCare</h2>
+{% extends 'base.html' %}
 
-<table>
-    <thead>
-        <tr>
-            <th>Paciente</th>
-            <th>Tratamiento</th>
-            <th>Fecha y Hora</th>
-            <th>Acciones</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for cita in mis_citas %}
-        <tr>
-            <td>{{ cita.paciente.get_full_name }}</td>
-            <td>{{ cita.tratamiento.nombre }}</td>
-            <td>{{ cita.fecha|date:"d/m/Y H:i" }}</td>
-            <td>
-                <a href="{% url 'anotar_progreso' cita.id %}">Anotar Progreso</a>
-            </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="4">No tienes citas pendientes hoy.</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
+{% block title %}Dashboard Terapeuta - CogniCare{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    
+    <!-- SECCIÓN 1: DATOS DEL TERAPEUTA -->
+    <div class="card bg-white border-0 shadow-sm p-4 mb-4" style="border-left: 5px solid #2a9d8f !important;">
+        <div class="d-flex align-items-center justify-content-between flex-wrap">
+            <div class="d-flex align-items-center">
+                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3 text-primary" style="width: 60px; height: 60px; font-size: 1.8rem; background-color: #e8f5e9 !important; color: #2a9d8f !important;">
+                    <i class="bi bi-person-workspace"></i>
+                </div>
+                <div>
+                    <h4 class="mb-1 text-dark">Dr/a. {{ user.get_full_name|default:user.username }}</h4>
+                    <p class="text-muted mb-0 small">
+                        <i class="bi bi-envelope me-1"></i> {{ user.email }} | 
+                        <i class="bi bi-telephone me-1"></i> {{ user.telefono|default:"Teléfono no registrado" }}
+                    </p>
+                </div>
+            </div>
+            <div class="text-lg-end mt-3 mt-lg-0">
+                <span class="badge bg-success-subtle text-success p-2 fs-6">
+                    <i class="bi bi-calendar-check me-1"></i> {{ mis_citas.count }} Citas Pendientes
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECCIÓN 2: COLUMNAS PRINCIPALES -->
+    <div class="row">
+        
+        <!-- COLUMNA IZQUIERDA: PRÓXIMAS SESIONES (60% del ancho) -->
+        <div class="col-lg-7 mb-4">
+            <div class="card shadow-sm border-0 h-100 bg-white">
+                <div class="card-header bg-white border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+                    <h5 class="card-title fw-bold text-dark mb-0">
+                        <i class="bi bi-clock-history me-2 text-warning"></i>Próximas Sesiones del Día
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if mis_citas %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle border-0">
+                                <thead class="table-light">
+                                    <tr class="text-secondary small">
+                                        <th>Paciente</th>
+                                        <th>Tratamiento</th>
+                                        <th>Fecha / Hora</th>
+                                        <th class="text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for cita in mis_citas %}
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold text-dark">{{ cita.paciente.get_full_name }}</div>
+                                            <small class="text-muted text-xs">ID: #{{ cita.paciente.id }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary-subtle text-primary">{{ cita.tratamiento.nombre }}</span>
+                                        </td>
+                                        <td class="text-secondary small">
+                                            <i class="bi bi-calendar3 me-1"></i> {{ cita.fecha|date:"d M, Y" }}<br>
+                                            <i class="bi bi-clock me-1"></i> {{ cita.fecha|date:"H:i" }}
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <a href="{% url 'perfil_paciente' cita.paciente.id %}" class="btn btn-outline-secondary" title="Ver Historial">
+                                                    <i class="bi bi-eye"></i> Ficha
+                                                </a>
+                                                <a href="{% url 'nueva_sesion' cita.paciente.id %}" class="btn btn-success text-white" title="Registrar Evolución">
+                                                    <i class="bi bi-pencil-square"></i> Nota
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="text-muted display-6 mb-2"><i class="bi bi-emoji-smile"></i></div>
+                            <p class="text-muted mb-0">No tienes sesiones programadas para hoy.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: PACIENTES ASIGNADOS (40% del ancho) -->
+        <div class="col-lg-5 mb-4">
+            <div class="card shadow-sm border-0 h-100 bg-white">
+                <div class="card-header bg-white border-0 pt-3 pb-0">
+                    <h5 class="card-title fw-bold text-dark mb-0">
+                        <i class="bi bi-people me-2 text-info"></i>Mis Pacientes Asignados
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if mis_pacientes %}
+                        <div class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">
+                            {% for paciente in mis_pacientes %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-3 border-bottom">
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle bg-secondary-subtle text-secondary d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; font-weight: bold; font-size: 0.9rem;">
+                                        {{ paciente.first_name|slice:":1" }}{{ paciente.last_name|slice:":1" }}
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 text-dark fw-bold">{{ paciente.get_full_name }}</h6>
+                                        <small class="text-muted">{{ paciente.email }}</small>
+                                    </div>
+                                </div>
+                                <a href="{% url 'perfil_paciente' paciente.id %}" class="btn btn-sm btn-light border" style="border-radius: 20px;">
+                                    Ver Perfil <i class="bi bi-chevron-right ms-1"></i>
+                                </a>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <p class="text-muted mb-0">Aún no tienes pacientes con historial clínico registrado.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
