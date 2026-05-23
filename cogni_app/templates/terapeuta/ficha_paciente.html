@@ -41,46 +41,172 @@
                 </div>
             </div>
 
-            <div class="card shadow-sm border-0 bg-white mt-4">
-                <div class="card-header bg-white pt-3 pb-0 border-0">
-                    <h5 class="fw-bold text-dark">
-                        <i class="bi bi-graph-up-arrow text-success me-2"></i>Historial de Evolución Cognitiva
+            <div class="card shadow-sm border-0 bg-white mb-4">
+                <div class="card-header bg-white border-0 pt-4 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold text-dark mb-0">
+                        <i class="bi bi-journal-medical text-success me-2"></i>Plan de Tratamiento Individualizado
                     </h5>
+                    
+                    <!-- Si ya tiene un plan, permitimos actualizarlo o crear uno nuevo desde aquí -->
+                    {% if plan_actual %}
+                        <a href="{% url 'crear_plan_tratamiento' pk=paciente.id %}" class="btn btn-sm btn-outline-success px-3" style="border-radius: 20px;">
+                            <i class="bi bi-arrow-repeat me-1"></i> Actualizar Plan
+                        </a>
+                    {% endif %}
                 </div>
-                <div class="card-body">
-                    {% if historial_progreso %}
-                        <div class="timeline-container">
-                            {% for registro in historial_progreso %}
-                                <div class="p-3 mb-3 rounded-3 bg-light border-start border-4 {% if registro.desempeno_puntos >= 7 %}border-success{% elif registro.desempeno_puntos >= 5 %}border-warning{% else %}border-danger{% endif %}">
-                                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
-                                        <div>
-                                            <span class="fw-bold text-dark">Sesión de {{ registro.reserva.tratamiento.nombre }}</span>
-                                            <small class="text-muted ms-2">
-                                                <i class="bi bi-calendar3"></i> {{ registro.reserva.fecha|date:"d M, Y" }}
-                                            </small>
-                                        </div>
-                                        <!-- Puntuación destacada -->
-                                        <div>
-                                            <span class="badge {% if registro.desempeno_puntos >= 7 %}bg-success{% elif registro.desempeno_puntos >= 5 %}bg-warning text-dark{% else %}bg-danger{% endif %} px-2 py-1 fs-6">
-                                                Puntos: {{ registro.desempeno_puntos }}/10
-                                            </span>
-                                        </div>
+                
+                <div class="card-body pt-2">
+                    {% if plan_actual %}
+                        <!-- 🟢 CASO 1: El paciente SÍ tiene un plan activo -->
+                        <div class="row g-3">
+                            
+                            <!-- Alerta de Prioridad Clínica -->
+                            <div class="col-12">
+                                <div class="p-3 rounded d-flex align-items-center justify-content-between 
+                                    {% if plan_actual.nivel_importancia == 'ALTA' %} bg-danger-subtle text-danger-emphasis border-start border-danger border-4
+                                    {% elif plan_actual.nivel_importancia == 'MEDIA' %} bg-warning-subtle text-warning-emphasis border-start border-warning border-4
+                                    {% else %} bg-info-subtle text-info-emphasis border-start border-info border-4 {% endif %}">
+                                    <div>
+                                        <span class="small text-uppercase fw-bold d-block">Área Prioritaria de Intervención</span>
+                                        <strong class="fs-5">{{ plan_actual.area_prioritaria }}</strong>
                                     </div>
-                                    <p class="mb-0 text-secondary small style-quote" style="white-space: pre-line;">
-                                        <strong>Notas del terapeuta:</strong><br>
-                                        {{ registro.observaciones|default:"Sin observaciones registradas." }}
-                                    </p>
+                                    <span class="badge rounded-pill p-2 px-3 fs-6
+                                        {% if plan_actual.nivel_importancia == 'ALTA' %} bg-danger text-white
+                                        {% elif plan_actual.nivel_importancia == 'MEDIA' %} bg-warning text-dark
+                                        {% else %} bg-info text-dark {% endif %}">
+                                        Prioridad {{ plan_actual.get_nivel_importancia_display }}
+                                    </span>
                                 </div>
-                            {% endfor %}
+                            </div>
+
+                            <!-- Objetivos Clínicos -->
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded bg-light h-100">
+                                    <h6 class="fw-bold text-secondary mb-2">
+                                        <i class="bi bi-target me-2 text-primary"></i>Objetivos Terapéuticos
+                                    </h6>
+                                    <p class="mb-0 text-dark" style="white-space: pre-line;">{{ plan_actual.objetivos_principales }}</p>
+                                </div>
+                            </div>
+
+                            <!-- Actividades Recomendadas -->
+                            <div class="col-md-6">
+                                <div class="p-3 border rounded bg-light h-100">
+                                    <h6 class="fw-bold text-secondary mb-2">
+                                        <i class="bi bi-activity me-2 text-success"></i>Actividades y Ejercicios
+                                    </h6>
+                                    <p class="mb-0 text-dark" style="white-space: pre-line;">{{ plan_actual.actividades_recomendadas }}</p>
+                                </div>
+                            </div>
+
+                            <!-- Observaciones Adicionales (Si existen) -->
+                            {% if plan_actual.observaciones_clinicas %}
+                                <div class="col-12">
+                                    <div class="p-3 border-start border-3 border-secondary bg-light rounded-end">
+                                        <small class="fw-bold text-muted d-block mb-1">Observaciones del Especialista:</small>
+                                        <span class="text-muted small italic">{{ plan_actual.observaciones_clinicas }}</span>
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            <!-- Fechas de Control -->
+                            <div class="col-12 d-flex justify-content-between align-items-center border-top pt-3 mt-3 text-muted small">
+                                <span><i class="bi bi-calendar-check me-1"></i> Asignado el: {{ plan_actual.fecha_creacion|date:"d/m/Y" }}</span>
+                                <span class="fw-bold text-dark">
+                                    <i class="bi bi-calendar-event me-1 text-danger"></i> Próxima Revisión: {{ plan_actual.fecha_revision|date:"d/m/Y" }}
+                                </span>
+                            </div>
                         </div>
+
                     {% else %}
-                        <!-- Mensaje por si está vacío -->
-                        <div class="text-center py-4">
-                            <p class="text-muted mb-0">Este paciente aún no registra ninguna sesión evaluada.</p>
+                        <!-- ⚪ CASO 2: Estado vacío (No tiene ningún plan registrado todavía) -->
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-clipboard-x fs-1 text-secondary opacity-50 mb-2 d-block"></i>
+                            <p class="mb-3">Este paciente aún no cuenta con un Plan de Tratamiento Individualizado.</p>
+                            <a href="{% url 'crear_plan_paciente_especifico' paciente.id %}" class="btn btn-success text-white btn-sm px-4 fw-bold">
+                                <i class="bi bi-plus-lg me-1"></i> Diseñar Plan de Trabajo
+                            </a>
                         </div>
                     {% endif %}
                 </div>
-            </div>
+            
+                <!-- ALERTA: CONTROL MENSUAL -->
+                {% if requiere_informe_mensual %}
+                    <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center justify-content-between p-3 mb-4 rounded-3">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-exclamation-triangle-fill text-warning fs-4 me-3"></i>
+                        <div>
+                            <h6 class="fw-bold text-dark mb-0">Hito de Control: 1 Mes de Tratamiento</h6>
+                            <small class="text-secondary">El plan actual ha cumplido los 30 días de vigencia. Es necesario redactar el informe evolutivo.</small>
+                        </div>
+                    </div>
+                    <a href="{% url 'crear_informe_progreso' pk=paciente.id %}" class="btn btn-warning btn-sm text-dark fw-bold px-3">
+                        <i class="bi bi-pencil-square me-1"></i> Redactar Informe
+                    </a>
+                    </div>
+                {% endif %}
+                <div class="card shadow-sm border-0 bg-white mt-4">
+                    <div class="card-header bg-white pt-3 pb-0 border-0">
+                        <h5 class="fw-bold text-dark">
+                            <i class="bi bi-graph-up-arrow text-success me-2"></i>Historial de Evolución Cognitiva
+                        </h5>
+                        <!-- SECCIÓN DE INFORMES MENSUALES EMITIDOS -->
+                    {% if informes %}
+                        <div class="dropdown mt-2 mt-sm-0">
+                            <button class="btn btn-outline-primary btn-sm dropdown-toggle fw-bold shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-folder-check me-1"></i> Ver Informes Mensuales ({{ informes.count }})
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                                <li class="dropdown-header small text-uppercase">Historial de Informes</li>
+                                {% for informe in informes %}
+                                    <li>
+                                        <a class="dropdown-item d-flex align-items-center py-2" href="{% url 'detalle_informe_progreso' pk=informe.id %}">
+                                            <i class="bi bi-file-earmark-text text-warning me-2 fs-5"></i>
+                                            <div>
+                                                <span class="d-block fw-bold text-dark small">{{ informe.fecha_informe|date:"F, Y" }}</span>
+                                                <span class="text-muted" style="font-size: 0.75rem;">{{ informe.get_evolucion_general_display }}</span>
+                                            </div>
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                    </div>
+                    
+                    <div class="card-body">
+                        {% if historial_progreso %}
+                            <div class="timeline-container">
+                                {% for registro in historial_progreso %}
+                                    <div class="p-3 mb-3 rounded-3 bg-light border-start border-4 {% if registro.desempeno_puntos >= 7 %}border-success{% elif registro.desempeno_puntos >= 5 %}border-warning{% else %}border-danger{% endif %}">
+                                        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
+                                            <div>
+                                                <span class="fw-bold text-dark">Sesión de {{ registro.sesion.tratamiento.nombre }}</span>
+                                                <small class="text-muted ms-2">
+                                                    <i class="bi bi-calendar3"></i> {{ registro.sesion.fecha|date:"d M, Y" }}
+                                                </small>
+                                            </div>
+                                            <!-- Puntuación destacada -->
+                                            <div>
+                                                <span class="badge {% if registro.desempeno_puntos >= 7 %}bg-success{% elif registro.desempeno_puntos >= 5 %}bg-warning text-dark{% else %}bg-danger{% endif %} px-2 py-1 fs-6">
+                                                    Puntos: {{ registro.desempeno_puntos }}/10
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <p class="mb-0 text-secondary small style-quote" style="white-space: pre-line;">
+                                            <strong>Notas del terapeuta:</strong><br>
+                                            {{ registro.observaciones|default:"Sin observaciones registradas." }}
+                                        </p>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <!-- Mensaje por si está vacío -->
+                            <div class="text-center py-4">
+                                <p class="text-muted mb-0">Este paciente aún no registra ninguna sesión evaluada.</p>
+                            </div>
+                        {% endif %}
+                    </div>
         </div>
     </div>
 </div>

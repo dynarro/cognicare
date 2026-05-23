@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-9 col-lg-8">
+            
+            <!-- Botón de regreso a la ficha del paciente -->
+            <a href="{% url 'perfil_paciente' pk=paciente.id %}" class="btn btn-link text-secondary p-0 mb-3 text-decoration-none">
+                <i class="bi bi-arrow-left me-1"></i> Volver al perfil de {{ paciente.get_full_name }}
+            </a>
+
+            <!-- Ficha / Documento Clínico -->
+            <div class="card shadow-sm border-0 bg-white rounded-3 overflow-hidden mb-5">
+                
+                <!-- Encabezado del Documento Oficial -->
+                <div class="card-header p-4 border-0 d-flex justify-content-between align-items-center flex-wrap gap-2" style="background-color: #141738;">
+                    <div>
+                        <span class="badge text-dark small fw-bold text-uppercase mb-1" style="background-color: #B4BDFC;">CogniCare - Historial Clínico</span>
+                        <h4 class="fw-bold text-white mb-0">Informe de Progreso Mensual</h4>
+                        <p class="small mb-0 mt-1" style="color: #D1D9FF;">Emitido el {{ informe.fecha_informe|date:"d \d\e F, Y" }}</p>
+                    </div>
+                    <!-- Botón preparado para futuras impresiones -->
+                    <button onclick="window.print();" class="btn btn-outline-light btn-sm d-none d-sm-block">
+                        <i class="bi bi-printer me-1"></i> Imprimir Informe
+                    </button>
+                </div>
+
+                <div class="card-body p-4 p-md-5">
+                    
+                    <!-- Datos Básicos del Adulto Mayor -->
+                    <div class="row bg-light rounded p-3 mb-4 mx-0 border">
+                        <div class="col-sm-6 mb-2 mb-sm-0">
+                            <span class="text-muted d-block small text-uppercase fw-semibold">Paciente</span>
+                            <strong class="text-dark fs-5">{{ paciente.get_full_name }}</strong>
+                        </div>
+                        <div class="col-sm-6 text-sm-end">
+                            <span class="text-muted d-block small text-uppercase fw-semibold">Terapeuta Evaluador</span>
+                            <strong class="text-secondary">{{ informe.terapeuta.get_full_name }}</strong>
+                        </div>
+                    </div>
+
+                    <!-- Estado Evolutivo -->
+                    <div class="p-3 mb-5 rounded d-flex align-items-center {% if informe.evolucion_general == 'MEJORA_S' %}bg-success-subtle text-success-emphasis border border-success-subtle{% elif informe.evolucion_general == 'MEJORA_L' %}bg-info-subtle text-info-emphasis border border-info-subtle{% elif informe.evolucion_general == 'REGRESION' %}bg-danger-subtle text-danger-emphasis border border-danger-subtle{% else %}bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle{% endif %}">
+                        <i class="bi bi-activity fs-3 me-3"></i>
+                        <div>
+                            <span class="small d-block text-uppercase fw-bold opacity-75" style="font-size: 0.75rem;">Conclusión del Dictamen Clínico</span>
+                            <strong class="fs-4">{{ informe.get_evolucion_general_display }}</strong>
+                        </div>
+                    </div>
+
+                    <!-- Bloque 1: Logros -->
+                    <div class="mb-5">
+                        <h5 class="fw-bold text-success border-bottom pb-2 mb-3">
+                            <i class="bi bi-check-circle-fill me-2"></i>1. Logros y Avances Consolidados
+                        </h5>
+                        <div class="text-secondary lh-base px-2" style="white-space: pre-line;">
+                            {{ informe.logros_destacados }}
+                        </div>
+                    </div>
+
+                    <!-- Bloque 2: Cosas por Mejorar -->
+                    <div class="mb-5">
+                        <h5 class="fw-bold text-danger border-bottom pb-2 mb-3">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>2. Aspectos por Mejorar y Bloqueos Detectados
+                        </h5>
+                        <div class="text-secondary lh-base px-2" style="white-space: pre-line;">
+                            {{ informe.aspectos_por_mejorar }}
+                        </div>
+                    </div>
+
+                    <!-- Bloque 3: Recomendaciones -->
+                    <div class="mb-4">
+                        <h5 class="fw-bold text-primary border-bottom pb-2 mb-3">
+                            <i class="bi bi-lightbulb-fill me-2"></i>3. Plan de Acción y Recomendaciones Futuras
+                        </h5>
+                        <div class="text-secondary lh-base px-2" style="white-space: pre-line;">
+                            {{ informe.recomendaciones_proximo_mes }}
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Cierre / Firma Legal -->
+                <div class="card-footer bg-light p-4 text-center border-0 border-top mt-2">
+                    <p class="text-muted small mb-0">Este documento forma parte del expediente digital del paciente en CogniCare.</p>
+                    <p class="text-muted mt-1" style="font-size: 0.75rem;">ID de Verificación Digital: COG-INF-{{ informe.id }}-{{ informe.fecha_informe|date:"Y" }}</p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}Nueva Reserva - CogniCare{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 bg-white">
+            <div class="card-header bg-white border-0 pt-4 pb-2">
+                <h4 class="fw-bold text-dark mb-0"><i class="bi bi-calendar-plus text-primary me-2"></i>Agendar Nueva Sesión</h4>
+                <p class="text-muted small">El sistema validará automáticamente que no tengas conflictos de horario.</p>
+            </div>
+            <div class="card-body">
+                
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    <!-- Errores generales de disponibilidad (Aquí saldrá el aviso de choque de horas) -->
+                    {% if form.non_field_errors %}
+                        {% for error in form.non_field_errors %}
+                            <div class="alert alert-danger d-flex align-items-center" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                <div>{{ error }}</div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Campo Paciente -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary">{{ form.paciente.label }}</label>
+                        {{ form.paciente }}
+                        {% if form.paciente.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.paciente.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Campo Fecha y Hora -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary">Fecha y Hora de la Sesión</label>
+                        {{ form.fecha }}
+                        {% if form.fecha.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.fecha.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Campo Tratamiento -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-secondary">{{ form.tratamiento.label }}</label>
+                        {{ form.tratamiento }}
+                        {% if form.tratamiento.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.tratamiento.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Botones -->
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'dashboard' %}" class="btn btn-light border">Cancelar</a>
+                        <button type="submit" name="submit_reserva" value="1" class="btn btn-primary bg-primary text-white px-4">
+                            Confirmar Reserva
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

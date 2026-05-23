@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 bg-white">
+                <div class="card-header bg-white border-0 pt-4">
+                    <h4 class="fw-bold text-dark mb-1">
+                        <i class="bi bi-journal-medical text-success me-2"></i>Nuevo Plan de Tratamiento Individualizado
+                    </h4>
+                    <p class="text-muted small">Establece las áreas de enfoque prioritarias y la hoja de ruta para la estimulación del paciente.</p>
+                </div>
+                <div class="card-body">
+                    <form method="POST" novalidate>
+                        {% csrf_token %}
+
+                        <div class="row">
+                            <!-- Selección de Paciente -->
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-secondary">Paciente</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light text-muted"><i class="bi bi-person-fill"></i></span>
+                                    <input type="text" class="form-control bg-light" value="{{ paciente.get_full_name}}" readonly disabled>
+                                </div>
+                                <div class="form-text text-success">
+                                    <i class="bi bi-lock-fill me-1"></i>Este plan se asignará exclusivamente a este paciente.
+                                </div>
+                            </div>
+                            <!-- Fecha de Revisión -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold text-secondary">Fecha de Próxima Revisión</label>
+                                {{ form.fecha_revision }}
+                            </div>
+                        </div>
+
+                        <hr class="text-muted my-2">
+
+                        <!-- SECCIÓN DE VALORACIÓN Y IMPORTANCIA -->
+                        <div class="row bg-light p-3 rounded mb-3 mx-1">
+                            <div class="col-md-7 mb-2">
+                                <label class="form-label fw-bold text-dark">Área Neurocognitiva / Física a Priorizar</label>
+                                {{ form.area_prioritaria }}
+                            </div>
+                            <div class="col-md-5 mb-2">
+                                <label class="form-label fw-bold text-dark">Nivel de Importancia Clínica</label>
+                                {{ form.nivel_importancia }}
+                            </div>
+                        </div>
+
+                        <!-- Objetivos -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-secondary">Objetivos Terapéuticos Individualizados</label>
+                            {{ form.objetivos_principales }}
+                        </div>
+
+                        <!-- Actividades -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-secondary">Actividades y Ejercicios Sugeridos</label>
+                            {{ form.actividades_recomendadas }}
+                        </div>
+
+                        <!-- Observaciones -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-secondary">Observaciones Iniciales (Opcional)</label>
+                            {{ form.observaciones_clinicas }}
+                        </div>
+
+                        <!-- Botones de Acción -->
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'dashboard' %}" class="btn btn-light border">Cancelar</a>
+                            <button type="submit" class="btn btn-success text-white px-4">
+                                Guardar Plan de Trabajo
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

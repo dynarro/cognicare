@@ -38,6 +38,10 @@
                     <h5 class="card-title fw-bold text-dark mb-0">
                         <i class="bi bi-clock-history me-2 text-warning"></i>Próximas Sesiones Programadas
                     </h5>
+
+                    <a href="{% url 'crear_reserva_terapeuta' %}" class="btn btn-sm btn-primary px-3 text-white fw-bold d-flex align-items-center" style="border-radius: 20px;">
+                        <i class="bi bi-calendar-plus me-1"></i> Agendar Sesión
+                    </a>
                 </div>
                 <div class="card-body">
                     {% if mis_citas %}
@@ -67,12 +71,19 @@
                                         </td>
                                         <td class="text-center">
                                             <div class="btn-group btn-group-sm" role="group">
-                                                <a href="{% url 'perfil_paciente' cita.paciente.id %}" class="btn btn-outline-secondary" title="Ver Historial">
+                                                <!--<a href="{% url 'perfil_paciente' cita.paciente.id %}" class="btn btn-outline-secondary" title="Ver Historial">
                                                     <i class="bi bi-eye"></i> Ficha
+                                                </a>-->
+                                                <a href="{% url 'nueva_sesion' cita.paciente.id %}" class="btn btn-success text-white" title="Evaluar Sesión">
+                                                    <i class="bi bi-pencil-square"></i>
                                                 </a>
-                                                <a href="{% url 'nueva_sesion' cita.paciente.id %}" class="btn btn-success text-white" title="Registrar Evolución">
-                                                    <i class="bi bi-pencil-square"></i> Nota
-                                                </a>
+                    
+                                                <form action="{% url 'anular_sesion' pk=cita.id %}" method="POST" onsubmit="return confirm('¿Confirmas que deseas anular la sesión programada para {{ sesion.paciente.get_full_name }}?');">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-danger text-white text-decoration-none" title="Anular sesión">
+                                                        <i class="bi bi-calendar-x-fill"></i>
+                                                    </button>
+                                                </form>
                                             </div>
                                         </td>
                                     </tr>
@@ -114,6 +125,9 @@
                                 </div>
                                 <a href="{% url 'perfil_paciente' paciente.id %}" class="btn btn-sm btn-light border" style="border-radius: 20px;">
                                     Ver Perfil <i class="bi bi-chevron-right ms-1"></i>
+                                </a>
+                                <a href="{% url 'crear_plan_tratamiento' pk=paciente.id %}" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-journal-plus"></i> Crear Plan Individual
                                 </a>
                             </div>
                             {% endfor %}
