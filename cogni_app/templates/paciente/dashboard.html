@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Mi Panel - CogniCare{% endblock %}
+
+{% block content %}
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4 py-3 fw-medium d-flex align-items-center" role="alert">
+            <i class="bi bi-check-circle-fill fs-4 me-3 text-success"></i>
+            <div>{{ message }}</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="padding: 1.1rem;"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+<div class="container mt-4">
+    
+    <div class="card bg-white border-0 shadow-sm p-4 mb-4" style="border-left: 5px solid #4a90e2 !important;">
+        <div class="d-flex align-items-center">
+            <div class="rounded-circle d-flex align-items-center justify-content-center me-3 text-white" style="width: 60px; height: 60px; font-size: 1.8rem; background-color: #4a90e2 !important;">
+                <i class="bi bi-emoji-smile-fill"></i>
+            </div>
+            <div>
+                <h4 class="mb-1 text-dark">¡Hola, {{ user.first_name|default:user.username }}!</h4>
+                <p class="text-muted mb-0 small">Bienvenido/a a tu espacio personal de CogniCare. Aquí puedes seguir el control de tus sesiones.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4 bg-white">
+                <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                    <h5 class="card-title fw-bold text-dark mb-0">
+                        <i class="bi bi-calendar2-check-fill me-2 text-primary"></i> Mis Próximas Sesiones
+                    </h5>
+                    <a href="{% url 'solicitar_cita' %}" class="btn btn-outline-primary btn-sm fw-bold px-3 py-2 me-2" style="border-radius: 20px;">
+                        <i class="bi bi-calendar-plus-fill me-1"></i> Solicitar Nueva Cita
+                    </a>
+                    <span class="badge bg-primary-subtle text-primary font-weight-bold px-3 py-2" style="border-radius: 20px;">
+                        {{ lista_citas_paciente|length }} Agendadas
+                    </span>
+                </div>
+                <div class="card-body">
+                    {% if lista_citas_paciente %}
+                        <div class="table-responsive">
+                            <table class="table align-middle border-0">
+                                <thead class="table-light">
+                                    <tr class="text-secondary small">
+                                        <th>Fecha y Día</th>
+                                        <th>Hora</th>
+                                        <th>Especialidad / Tratamiento</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for s in lista_citas_paciente %}
+                                    <tr>
+                                        <td class="fw-bold text-dark">
+                                            <i class="bi bi-calendar3 me-2 text-muted"></i>{{ s.fecha|date:"l, d \d\e F" }}
+                                        </td>
+                                        <td class="text-primary fw-bold">
+                                            <i class="bi bi-clock me-1"></i> {{ s.fecha|date:"H:i" }}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark border">{{ s.tratamiento.nombre|default:"Consulta General" }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success-subtle text-success border-0 px-2 py-1">Confirmada</span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5 bg-light rounded-3">
+                            <div class="text-muted display-6 mb-2"><i class="bi bi-calendar-x"></i></div>
+                            <p class="text-muted mb-0">No tienes ninguna sesión programada por ahora.</p>
+                            <small class="text-muted">Si necesitas agendar una cita, ponte en contacto con tu terapeuta.</small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 bg-white mb-4">
+                <div class="card-header bg-white border-0 pt-3 pb-0">
+                    <h5 class="card-title fw-bold text-dark mb-0">
+                        <i class="bi bi-heart-pulse-fill me-2 text-danger"></i> Mi Terapeuta
+                    </h5>
+                </div>
+                <div class="card-body text-center py-4">
+                    {% if terapeuta_asignado %}
+                        <div class="rounded-circle bg-info-subtle text-info d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px; font-weight: bold; font-size: 1.4rem;">
+                            {{ terapeuta_asignado.first_name|slice:":1" }}{{ terapeuta_asignado.last_name|slice:":1" }}
+                        </div>
+                        
+                        <h5 class="text-dark fw-bold mb-1">Dr/a. {{ miembro_terapeuta.get_full_name|default:terapeuta_asignado.get_full_name|default:terapeuta_asignado.username }}</h5>
+                        <p class="text-muted small mb-4">Profesional de la salud CogniCare</p>
+                        
+                        <div class="text-start border-top pt-3">
+                            <div class="d-flex align-items-center mb-3 text-secondary">
+                                <i class="bi bi-envelope-fill me-3 text-primary fs-5"></i>
+                                <div>
+                                    <small class="text-muted d-block" style="font-size: 0.75rem;">Correo Electrónico</small>
+                                    <span class="text-dark small fw-semibold">{{ miembro_terapeuta.email|default:terapeuta_asignado.email }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex align-items-center text-secondary">
+                                <i class="bi bi-telephone-fill me-3 text-success fs-5"></i>
+                                <div>
+                                    <small class="text-muted d-block" style="font-size: 0.75rem;">Teléfono de Contacto</small>
+                                    <span class="text-dark small fw-semibold">{{ miembro_terapeuta.telefono|default:terapeuta_asignado.telefono|default:"No disponible" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="py-3">
+                            <div class="text-muted display-6 mb-2"><i class="bi bi-person-dash"></i></div>
+                            <p class="text-muted small mb-0">Aún no se ha registrado un terapeuta en tu historial.</p>
+                            <small class="text-muted text-xs">Se te asignará uno automáticamente en tu primera consulta.</small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div> </div>
+{% endblock %}

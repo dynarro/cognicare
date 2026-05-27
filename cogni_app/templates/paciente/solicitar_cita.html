@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Solicitar Nueva Cita - CogniCare{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-6">
+            
+            <!-- BOTÓN VOLVER -->
+            <a href="{% url 'dashboard_paciente' %}" class="btn btn-link text-secondary p-0 mb-3 text-decoration-none">
+                <i class="bi bi-arrow-left me-1"></i> Volver a mi panel
+            </a>
+
+            <!-- TARJETA DEL FORMULARIO -->
+            <div class="card shadow-sm border-0 bg-white" style="border-radius: 15px;">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                    <h4 class="fw-bold text-dark mb-1">
+                        <i class="bi bi-calendar-plus text-primary me-2"></i> Solicitar una cita
+                    </h4>
+                    <p class="text-muted small mb-0">Propón un horario y el tipo de consulta que necesitas. Tu terapeuta validará la disponibilidad en su agenda.</p>
+                </div>
+
+                <div class="card-body p-4">
+                    <form method="POST" class="needs-validation" novalidate>
+                        {% csrf_token %}
+
+                        <!-- CAMPO TRATAMIENTO -->
+                        <div class="mb-4">
+                            <label for="{{ form.tratamiento.id_for_label }}" class="form-label text-secondary small fw-bold">
+                                {{ form.tratamiento.label }}
+                            </label>
+                            {{ form.tratamiento }}
+                            {% if form.tratamiento.errors %}
+                                <div class="text-danger small mt-1">{{ form.tratamiento.errors|striptags }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- CAMPO FECHA Y HORA -->
+                        <div class="mb-4">
+                            <label for="{{ form.fecha.id_for_label }}" class="form-label text-secondary small fw-bold">
+                                {{ form.fecha.label }}
+                            </label>
+                            {{ form.fecha }}
+                            <div class="form-text text-muted small">
+                                <i class="bi bi-info-circle me-1"></i> Selecciona el día y una hora aproximada.
+                            </div>
+                            {% if form.fecha.errors %}
+                                <div class="text-danger small mt-1">{{ form.fecha.errors|striptags }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- NOTA RECORDATORIA -->
+                        <div class="alert alert-info border-0 small py-3 px-3 mb-4 d-flex align-items-start" style="background-color: #e3f2fd; border-radius: 10px;">
+                            <i class="bi bi-info-square-fill text-primary me-3 fs-5 mt-1"></i>
+                            <div>
+                                <span class="fw-bold text-dark d-block mb-1">¿Cómo funciona la asignación?</span>
+                                <span class="text-secondary">Una vez envíes la solicitud, quedará marcada como "En revisión". Recibirás la confirmación final de tu profesional en tu panel principal.</span>
+                            </div>
+                        </div>
+
+                        <!-- BOTONES DE ACCIÓN -->
+                        <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                            <a href="{% url 'dashboard_paciente' %}" class="btn btn-light px-4 fw-semibold" style="border-radius: 20px;">
+                                Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm" style="background-color: #4a90e2; border-radius: 20px; border: none;">
+                                Enviar Solicitud <i class="bi bi-send ms-1"></i>
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

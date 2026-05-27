@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block title %}Iniciar Sesión - CogniCare{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+        <div class="col-md-5 col-lg-4">
+            
+            <div class="card shadow-lg border-0 bg-white" style="border-radius: 15px;">
+                
+                <div class="card-header bg-white border-0 text-center pt-5 pb-2">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 text-white" 
+                         style="width: 60px; height: 60px; background-color: #B4BDFC !important; font-size: 1.8rem;">
+                        <i class="bi bi-shield-lock-fill"></i>
+                    </div>
+                    <h3 class="fw-bold text-dark mb-1">CogniCare</h3>
+                    <p class="text-muted small">Ingresa tus credenciales para acceder a tu panel</p>
+                </div>
+
+                <div class="card-body px-4 pb-5">
+                    
+                    {% if form.errors %}
+                        <div class="alert alert-danger alert-dismissible fade show small py-2" role="alert">
+                            <i class="bi bi-exclamation-circle-fill me-2"></i> Usuario o contraseña incorrectos.
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="padding: 0.75rem 1rem;"></button>
+                        </div>
+                    {% endif %}
+
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="id_username" class="form-label text-secondary small fw-bold">Usuario o Correo</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person"></i></span>
+                                <input type="text" name="username" id="id_username" class="form-control bg-light border-start-0" placeholder="Ej: p.martinez" required autofocus>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="id_password" class="form-label text-secondary small fw-bold">Contraseña</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-key"></i></span>
+                                <input type="password" name="password" id="id_password" class="form-control bg-light border-start-0" placeholder="••••••••" required>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn text-white fw-bold py-2 shadow-sm" style="background-color: #141738; border-radius: 25px;">
+                                Iniciar Sesión <i class="bi bi-box-arrow-in-right ms-1"></i>
+                            </button>
+                        </div>
+                        
+                    </form>
+                    
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+{% endblock %}

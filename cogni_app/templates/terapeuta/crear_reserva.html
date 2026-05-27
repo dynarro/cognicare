@@ -28,7 +28,7 @@
                     <!-- Campo Paciente -->
                     <div class="mb-3">
                         <label class="form-label fw-bold text-secondary">{{ form.paciente.label }}</label>
-                        {{ form.paciente }}
+                        {{ form.paciente}}
                         {% if form.paciente.errors %}
                             <div class="text-danger small mt-1">
                                 {% for error in form.paciente.errors %}{{ error }}{% endfor %}
@@ -39,7 +39,12 @@
                     <!-- Campo Fecha y Hora -->
                     <div class="mb-3">
                         <label class="form-label fw-bold text-secondary">Fecha y Hora de la Sesión</label>
-                        {{ form.fecha }}
+                        <input type="datetime-local" 
+                            name="fecha" 
+                            id="id_fecha" 
+                            class="form-control" 
+                            value="{{ form.fecha.value|default:'' }}" 
+                            required>
                         {% if form.fecha.errors %}
                             <div class="text-danger small mt-1">
                                 {% for error in form.fecha.errors %}{{ error }}{% endfor %}

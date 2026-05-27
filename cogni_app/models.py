@@ -1,7 +1,9 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
-from datetime import date
+from django.utils import timezone
+from datetime import timedelta
+from zoneinfo import ZoneInfo
 
 
 class User(AbstractUser):
@@ -53,7 +55,8 @@ class Tratamiento(models.Model):
 # 3. Sesion
 class Sesion(models.Model):
     ESTADO_CHOICES = [
-        ('PROGRAMADA', 'Programada'),
+        ('SOLICITADA', 'Solicitada por el Paciente'),
+        ('PROGRAMADA', 'Programada / Confirmada'),
         ('COMPLETADA', 'Completada'),
         ('ANULADA', 'Anulada'),
     ]
@@ -64,6 +67,31 @@ class Sesion(models.Model):
     fecha = models.DateTimeField()
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='PROGRAMADA')
 
+    @property
+    def puede_evaluarse(self):
+        if not self.fecha:
+            return False
+        zona = ZoneInfo('Europe/Madrid')
+
+        ahora_zona = timezone.now().astimezone(zona)
+        cita_zona = self.fecha.astimezone(zona)
+        cita_real = cita_zona - timedelta(hours=5)
+        ahora_con_margen = ahora_zona + timedelta(hours=2)
+        
+        return cita_real <= ahora_con_margen
+    
+    @property
+    def requiere_evaluacion_atrasada(self):
+        if not self.fecha or self.estado != 'PROGRAMADA':
+            return False
+        
+        zona_espana = ZoneInfo('Europe/Madrid')
+        ahora_espana = timezone.now().astimezone(zona_espana)
+        
+        cita_real = self.fecha.astimezone(zona_espana) - timedelta(hours=5)
+        
+        return cita_real.date() < ahora_espana.date()
+        
     def __str__(self):
         return f"Sesión con {self.paciente.get_full_name()} - {self.fecha} ({self.get_estado_display()})"
 

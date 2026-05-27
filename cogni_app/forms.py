@@ -1,14 +1,23 @@
 from django import forms
 from .models import Progreso, Sesion, User, PlanTratamiento, InformeProgreso
 from django.utils import timezone
+from zoneinfo import ZoneInfo
 from datetime import timedelta
 
 
-class ProgresoForm(forms.ModelForm):
+class FormularioConTerapeuta(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        # Limpia radicalmente cualquier variable que mande la vista
+        self.terapeuta = kwargs.pop('terapeuta', None)
+        self.profesional = kwargs.pop('profesional', None)
+        super().__init__(*args, **kwargs)
+
+
+class ProgresoForm(FormularioConTerapeuta):
     class Meta:
         model = Progreso
         # Los campos que el terapeuta va a rellenar
-        fields = ['desempeno_puntos', 'observaciones']
+        fields = '__all__'
         
         widgets = {
             'desempeno_puntos': forms.NumberInput(attrs={
@@ -30,56 +39,93 @@ class ProgresoForm(forms.ModelForm):
             'observaciones': 'Notas Clínicas y Observaciones de la Sesión',
         }
 
+        def __init__(self, *args, **kwargs):
+            
+            self.terapeuta = kwargs.pop('terapeuta', None)
+            super().__init__(*args, **kwargs)
+            self.profesional = kwargs.pop('profesional', None)
+            super().__init__(*args, **kwargs)
 
-class ReservaTerapeutaForm(forms.ModelForm):
+
+class ReservaTerapeutaForm(FormularioConTerapeuta):
     class Meta:
         model = Sesion
         fields = ['paciente', 'fecha', 'tratamiento']
         widgets = {
             'paciente': forms.Select(attrs={'class': 'form-select'}),
             'tratamiento': forms.Select(attrs={'class': 'form-select'}),
-            'fecha': forms.DateTimeInput(attrs={
-                'class': 'form-control',
-                'type': 'datetime-local'
-            }),
+            'fecha': forms.DateTimeInput(
+                attrs={
+                    'type': 'datetime-local',
+                    'class': 'form-control',  # Mantiene tu diseño de Bootstrap
+                },
+                format='%Y-%m-%dT%H:%M'
+            ),
         }
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
+        # 1. Extraemos los parámetros personalizados de forma segura antes del super
         self.terapeuta = kwargs.pop('terapeuta', None)
-        super().__init__(**kwargs)
+        self.profesional = kwargs.pop('profesional', None)
+        
+        # 2. SEÑAL ÚNICA: Llamamos al constructor de Django UNA sola vez
+        super().__init__(*args, **kwargs)
 
+        # 3. FILTRADO: Traemos solo a los que NO son terapeutas ni superusuarios
+        # (Asegúrate de tener importada tu clase User arriba en el archivo)
         self.fields['paciente'].queryset = User.objects.filter(
-            perfil_paciente__isnull=False
-        ).order_by('first_name', 'last_name')
-
+            is_terapeuta=False, 
+            is_superuser=False,
+            is_staff=False  # Añadimos por seguridad para evitar que salgan administradores
+        ).order_by('first_name')
+        
+        # 4. FORMATO: Mostramos Nombre y Apellido de forma limpia en el select
         self.fields['paciente'].label_from_instance = lambda obj: obj.get_full_name() or obj.username
-        self.fields['fecha'].input_formats = ['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M']
-
+        
+        # 5. Formatos de fecha aceptados
+        self.fields['fecha'].input_formats = [
+            '%Y-%m-%dT%H:%M',
+            '%Y-%m-%d %H:%M:%S',
+            '%Y-%m-%d %H:%M',
+        ]
+    
     def clean(self):
         cleaned_data = super().clean()
         fecha_inicio = cleaned_data.get('fecha')
 
-        if fecha_inicio and self.terapeuta:
-            if fecha_inicio < timezone.now():
+        if fecha_inicio is not None:
+            zona_espana = ZoneInfo('Europe/Madrid')
+            ahora_local = timezone.now().astimezone(zona_espana)
+            
+            if timezone.is_naive(fecha_inicio):
+                fecha_inicio = timezone.make_aware(fecha_inicio, zona_espana)
+            else:
+                fecha_inicio = fecha_inicio.astimezone(zona_espana)
+            
+            cleaned_data['fecha'] = fecha_inicio
+           
+            if fecha_inicio < ahora_local:
                 raise forms.ValidationError("No puedes programar una sesión en una fecha o hora pasada.")
+        
+            if self.terapeuta:
+                duracion_sesion = timedelta(hours=1)
+                fecha_fin = fecha_inicio + duracion_sesion
 
-            duracion_sesion = timedelta(hours=1)
-            fecha_fin = fecha_inicio + duracion_sesion
+                citas_conflictivas = Sesion.objects.filter(
+                    terapeuta=self.terapeuta,
+                    estado='PROGRAMADA',
+                    fecha__lt=fecha_fin,
+                ).exclude(pk=self.instance.pk if self.instance else None)
 
-            citas_conflictivas = Sesion.objects.filter(
-                terapeuta=self.terapeuta,
-                estado='PROGRAMADA',
-                fecha__lt=fecha_fin,
-            )
-
-            for cita in citas_conflictivas:
-                cita_fin = cita.fecha + duracion_sesion
-                # Si la cita existente termina después de que empieza la nueva -> ¡CHOQUE!
-                if cita_fin > fecha_inicio:
-                    raise forms.ValidationError(
-                        f"No estás disponible en esa fecha. Tienes otra sesión programada de "
-                        f"{cita.fecha.strftime('%H:%M')} a {cita_fin.strftime('%H:%M')}."
-                    )
+                for cita in citas_conflictivas:
+                    cita_fin = cita.fecha + duracion_sesion
+                    # Si la cita existente termina después de que empieza la nueva -> ¡CHOQUE!
+                    if cita_fin > fecha_inicio:
+                        inicio_txt = timezone.localtime(cita.fecha).astimezone(zona_espana).strftime('%H:%M')
+                        fin_txt = timezone.localtime(cita_fin).astimezone(zona_espana).strftime('%H:%M')
+                        raise forms.ValidationError(
+                            f"No estás disponible en esa fecha. Tienes otra sesión programada de {inicio_txt} a {fin_txt}."
+                        )
 
         return cleaned_data
 
@@ -149,3 +195,42 @@ class InformeProgresoForm(forms.ModelForm):
             'aspectos_por_mejorar': 'Aspectos por Mejorar (Dificultades detectadas)',
             'recomendaciones_proximo_mes': 'Estrategia y Pautas para el Próximo Mes',
         }
+
+
+class ReprogramarSesionForm(forms.ModelForm):
+    class Meta:
+        model = Sesion
+        fields = ['fecha']
+        widgets = {
+            # 'datetime-local' despliega un calendario con reloj integrado muy cómodo
+            'fecha': forms.DateTimeInput(
+                attrs={'type': 'datetime-local', 'class': 'form-control'},
+                format='%Y-%m-%dT%H:%M'
+            ),
+        }
+
+# PACIENTE
+
+class SolicitarCitaPacienteForm(forms.ModelForm):
+    class Meta:
+        model = Sesion
+        fields = ['tratamiento', 'fecha']  # Solo los dos datos que el paciente propone
+        widgets = {
+            'tratamiento': forms.Select(attrs={'class': 'form-select'}),
+            'fecha': forms.DateTimeInput(
+                attrs={
+                    'type': 'datetime-local',
+                    'class': 'form-control',
+                },
+                format='%Y-%m-%dT%H:%M'
+            ),
+        }
+        labels = {
+            'tratamiento': '¿Qué tipo de consulta necesitas?',
+            'fecha': 'Fecha y hora propuesta',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Formatos de fecha compatibles con el navegador
+        self.fields['fecha'].input_formats = ['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M']

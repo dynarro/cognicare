@@ -1,46 +1,74 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import ListView
 from django.contrib import messages
-from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import logout
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
 from django.utils import timezone
 from django.http import Http404
 from datetime import date
+from zoneinfo import ZoneInfo
 
 from .models import Sesion, User, PerfilPaciente, Progreso, InformeProgreso
-from .forms import ProgresoForm, ReservaTerapeutaForm, PlanTratamientoForm, InformeProgresoForm
-
-User = get_user_model()
+from .forms import ProgresoForm, ReservaTerapeutaForm, PlanTratamientoForm, InformeProgresoForm, ReprogramarSesionForm, SolicitarCitaPacienteForm
 
 class DashboardTerapeutaView(LoginRequiredMixin, ListView):
     model = Sesion
     template_name = 'terapeuta/dashboard.html'
-    context_object_name = 'mis_citas'
+
 
     def get_queryset(self):
-        ahora = timezone.now()
+        zona_espana = ZoneInfo('Europe/Madrid')
+        ahora_espana = timezone.now().astimezone(zona_espana)
+        hoy = ahora_espana.date()
         # Retorna solo las reservas donde el terapeuta es el usuario actual
         return Sesion.objects.filter(
             terapeuta=self.request.user, 
             estado='PROGRAMADA',
-            fecha__gte=ahora # __gte significa "Greater Than or Equal" (Mayor o igual a ahora)
+            fecha__date=hoy
         ).order_by('fecha')
     
     def get_context_data(self, **kwargs):
+        zona_espana = ZoneInfo('Europe/Madrid')
         context = super().get_context_data(**kwargs)
+        hoy_str = timezone.now().astimezone(zona_espana).strftime('%Y-%m-%d')
+        
+        todas_las_sesiones = Sesion.objects.all().order_by('fecha')
+    
+    
+        sesiones_pendientes_atrasadas = []
+        sesiones_hoy = []
+        sesiones_futuras = []
+        
+    
+        for s in todas_las_sesiones:
+            terapeuta_sesion = str(s.terapeuta).lower().strip()
+            usuario_actual = str(self.request.user.username).lower().strip()
+            
+            # Filtramos de forma manual y robusta por terapeuta y estado
+            if terapeuta_sesion == usuario_actual and s.estado and s.estado.strip().upper() == 'PROGRAMADA':
+                if s.fecha:
+                    dia_sesion_str = s.fecha.astimezone(zona_espana).strftime('%Y-%m-%d')
+                    
+                    if dia_sesion_str < hoy_str:
+                        sesiones_pendientes_atrasadas.append(s)
+                    elif dia_sesion_str == hoy_str:
+                        sesiones_hoy.append(s)
+                    elif dia_sesion_str > hoy_str:
+                        sesiones_futuras.append(s)
+    
+        context['lista_sesiones_futuras'] = sesiones_futuras
         # Obtenemos usuarios únicos que han tenido reservas con este terapeuta
         context['mis_pacientes'] = User.objects.filter(
             Q(citas_paciente__terapeuta=self.request.user) | 
             Q(perfil_paciente__terapeuta=self.request.user)
         ).distinct()
         
-        context['proximas_sesiones'] = Sesion.objects.filter(
-            terapeuta=self.request.user,
-            estado='PROGRAMADA',
-            fecha__gte=date.today()
-        ).order_by('fecha')
+        context['sesiones_hoy'] = sesiones_hoy
+        context['sesiones_pendientes_atrasadas'] = sesiones_pendientes_atrasadas
+        context['sesiones futuras'] = sesiones_futuras
+        
 
         # IDs de pacientes que YA tienen terapeuta fijo en su perfil
         con_terapeuta_fijo = PerfilPaciente.objects.filter(
@@ -114,9 +142,6 @@ def perfil_paciente(request, pk=None, paciente_id=None):
     historial_progreso = Progreso.objects.filter(
         sesion__paciente=paciente
     ).order_by('-sesion__fecha')
-    print("--- ENCONTRADOS EN LA BD ---")
-    print(historial_progreso) 
-    print("----------------------------")
 
     requiere_informe_mensual = False
 
@@ -157,7 +182,7 @@ def perfil_paciente(request, pk=None, paciente_id=None):
 
     return render(request, 'terapeuta/ficha_paciente.html', context)
 
-@login_required
+
 @login_required
 def nueva_sesion(request, paciente_id=None, pk=None):
     # Buscamos al paciente
@@ -168,26 +193,43 @@ def nueva_sesion(request, paciente_id=None, pk=None):
     
     # Buscamos la última cita pendiente de este paciente con este terapeuta
     reserva = Sesion.objects.filter(
-        paciente=paciente, 
+        paciente=paciente,
         terapeuta=request.user, 
         estado='PROGRAMADA'
     ).first()
 
+    fecha_formulario = None
+
     if request.method == 'POST':
-        form = ProgresoForm(request.POST)
+        form = ProgresoForm(request.POST, terapeuta=request.user)
+        
         if form.is_valid():
+            fecha_formulario = form.cleaned_data.get('fecha')
+
+            if fecha_formulario is not None:
+                zona_espana = ZoneInfo('Europe/Madrid')
+                
+                if timezone.is_naive(fecha_formulario):
+                    fecha_formulario = timezone.make_aware(fecha_formulario, zona_espana)
+                else:
+                    fecha_formulario = fecha_formulario.astimezone(zona_espana)
             # Creamos el objeto progreso pero no lo guardamos en la BD todavía
             progreso = form.save(commit=False)
-            
             # Si encontramos una reserva pendiente, la vinculamos y la marcamos como completada
             if reserva:
                 progreso.paciente = paciente
                 progreso.terapeuta = request.user
                 progreso.sesion = reserva
+                
+                if fecha_formulario is not None:
+                    reserva.fecha =fecha_formulario
+
                 reserva.estado = 'COMPLETADA'
                 reserva.save()
+                progreso.save()
+                return redirect('dashboard')
 
-                print("Estado cambiado a:", reserva.estado)
+
             else:
                 # Si por alguna razón no hay cita en el calendario, puedes manejar el error
                 # o crear una reserva ficticia. Por ahora, asumiremos que existe.
@@ -196,16 +238,15 @@ def nueva_sesion(request, paciente_id=None, pk=None):
 
             # Guardamos definitivamente el progreso
             progreso.save()
-            
-            # Enviamos un mensaje de éxito que se mostrará en el base.html
-            messages.success(request, f"¡Progreso de {paciente.get_full_name()} registrado correctamente!")
-            return redirect('perfil_paciente', pk=paciente.id)
+
     else:
-        form = ProgresoForm()
+        form = ProgresoForm(terapeuta=request.user)
 
     context = {
         'paciente': paciente,
         'reserva': reserva,
+        'terapeuta': request.user,
+        'fecha_formulario': fecha_formulario,
         'form': form,
     }
     return render(request, 'terapeuta/nueva_sesion.html', context)
@@ -230,7 +271,7 @@ def autoasignar_paciente(request, paciente_id=None, pk=None):
 @login_required
 def crear_reserva_terapeuta(request):
     if request.method == 'POST':
-        form = ReservaTerapeutaForm(data=request.POST, terapeuta=request.user)
+        form = ReservaTerapeutaForm(data=request.POST or None, terapeuta=request.user)
         if form.is_valid():
             reserva = form.save(commit=False)
             reserva.terapeuta = request.user # Aseguramos que el terapeuta sea el logueado
@@ -317,3 +358,88 @@ def anular_sesion(request, pk):
         return redirect('dashboard')
         
     return redirect('perfil_paciente', pk=sesion.paciente.id)
+
+@login_required
+def reprogramar_sesion(request, pk):
+    # Buscamos la sesión asegurándonos de que pertenezca al terapeuta actual
+    sesion = get_object_or_404(Sesion, pk=pk, terapeuta=request.user)
+    
+    if request.method == 'POST':
+        form = ReprogramarSesionForm(request.POST, instance=sesion)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"La sesión de {sesion.paciente.get_full_name()} ha sido reprogramada con éxito.")
+            return redirect('dashboard') # Cambia esto por el nombre real de tu url del dashboard
+    else:
+        # Pre-cargamos el formulario con la fecha actual de la sesión
+        form = ReprogramarSesionForm(instance=sesion)
+        
+    return render(request, 'terapeuta/reprogramar_sesion.html', {'form': form, 'sesion': sesion})
+
+def mi_vista_logout(request):
+    logout(request)
+    return redirect('/')
+
+@login_required
+def redireccionar_usuario(request):
+    # Preguntamos el rol al usuario que acaba de loguearse
+    if request.user.is_terapeuta:
+        return redirect('dashboard') 
+    else:
+        return redirect('dashboard_paciente')
+
+# CODIGO DE PACIENTES
+
+@login_required
+def dashboard_paciente(request):
+    zona_espana = ZoneInfo('Europe/Madrid')
+    ahora_local = timezone.now().astimezone(zona_espana)
+    
+    # 1. Traemos las próximas sesiones programadas del paciente
+    # Usamos el nombre antibloqueo para curarnos en salud desde el primer día
+    lista_citas_paciente = Sesion.objects.filter(
+        paciente=request.user,
+        estado='PROGRAMADA',
+        fecha__gte=ahora_local
+    ).order_by('fecha')
+    
+    # 2. Conseguimos los datos de su terapeuta.
+    # Buscamos en sus sesiones si ya tiene alguna agendada para sacar de ahí a su profesional asignado
+    terapeuta_asignado = None
+    primera_sesion = Sesion.objects.filter(paciente=request.user).first()
+    
+    if request.user.is_terapeuta or request.user.is_staff:
+        return redirect('dashboard') # dashboard terapeuta
+    if primera_sesion:
+        terapeuta_asignado = primera_sesion.terapeuta
+
+    context = {
+        'lista_citas_paciente': lista_citas_paciente,
+        'terapeuta_asignado': terapeuta_asignado,
+    }
+    return render(request, 'paciente/dashboard.html', context)
+
+@login_required
+def solicitar_cita(request):
+    if request.method == 'POST':
+        form = SolicitarCitaPacienteForm(request.POST)
+        if form.is_valid():
+            # Creamos el objeto sesión pero sin guardarlo en la base de datos todavía
+            sesion = form.save(commit=False)
+            
+            # Forzamos los datos de seguridad del paciente
+            sesion.paciente = request.user
+            sesion.estado = 'SOLICITADA'  # 🌟 Queda en revisión
+            
+            # Buscamos de forma inteligente si ya tiene un terapeuta asignado previamente
+            ultima_sesion = Sesion.objects.filter(paciente=request.user).first()
+            if ultima_sesion:
+                sesion.terapeuta = ultima_sesion.terapeuta
+            
+            sesion.save()
+            messages.success(request, "Tu solicitud de cita ha sido enviada. Tu terapeuta revisará la disponibilidad y te confirmará pronto.")
+            return redirect('dashboard_paciente')
+    else:
+        form = SolicitarCitaPacienteForm()
+        
+    return render(request, 'paciente/solicitar_cita.html', {'form': form})

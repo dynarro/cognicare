@@ -5,11 +5,10 @@
 {% block content %}
 <div class="container mt-4">
     
-    <!-- SECCIÓN 1: DATOS DEL TERAPEUTA -->
-    <div class="card bg-white border-0 shadow-sm p-4 mb-4" style="border-left: 5px solid #2a9d8f !important;">
+    <div class="card bg-white border-0 shadow-sm p-4 mb-4" style="border-left: 5px solid #141738 !important;">
         <div class="d-flex align-items-center justify-content-between flex-wrap">
             <div class="d-flex align-items-center">
-                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3 text-primary" style="width: 60px; height: 60px; font-size: 1.8rem; background-color: #e8f5e9 !important; color: #2a9d8f !important;">
+                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3 text-primary" style="width: 60px; height: 60px; font-size: 1.8rem; background-color: #D1D9FF !important; color: #141738 !important;">
                     <i class="bi bi-person-workspace"></i>
                 </div>
                 <div>
@@ -28,23 +27,58 @@
         </div>
     </div>
 
-    <!-- SECCIÓN 2: COLUMNAS PRINCIPALES -->
     <div class="row">
         
-        <!-- COLUMNA IZQUIERDA: PRÓXIMAS SESIONES (60% del ancho) -->
-        <div class="col-lg-7 mb-4">
-            <div class="card shadow-sm border-0 h-100 bg-white">
-                <div class="card-header bg-white border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+        <div class="col-lg-8">
+            
+            {% if sesiones_pendientes_atrasadas %}
+            <div class="card border-warning mb-4 shadow-sm">
+                <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Sesiones pendientes de días anteriores</h5>
+                    <span class="badge bg-dark">{{ sesiones_pendientes_atrasadas.count }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Paciente</th>
+                                    <th>Fecha original</th>
+                                    <th>Estado</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sesion in sesiones_pendientes_atrasadas %}
+                                    <tr>
+                                        <td><strong>{{ sesion.paciente.get_full_name|default:sesion.paciente.username }}</strong></td>
+                                        <td class="text-danger">{{ sesion.fecha|date:"d/m/Y H:i" }} (Pasada)</td>
+                                        <td><span class="badge bg-secondary">Sin Evaluar</span></td>
+                                        <td>
+                                            <a href="{% url 'nueva_sesion' paciente_id=sesion.paciente.id %}" class="btn btn-success btn-sm">
+                                                <i class="bi bi-journal-check"></i> Evaluar ahora
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="card shadow-sm border-0 mb-4 bg-white">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <h5 class="card-title fw-bold text-dark mb-0">
-                        <i class="bi bi-clock-history me-2 text-warning"></i>Próximas Sesiones Programadas
+                        <i class="bi bi-clock-history me-2 text-warning"></i>Sesiones Programadas Para Hoy
                     </h5>
-
                     <a href="{% url 'crear_reserva_terapeuta' %}" class="btn btn-sm btn-primary px-3 text-white fw-bold d-flex align-items-center" style="border-radius: 20px;">
                         <i class="bi bi-calendar-plus me-1"></i> Agendar Sesión
                     </a>
                 </div>
                 <div class="card-body">
-                    {% if mis_citas %}
+                    {% if sesiones_hoy %}
                         <div class="table-responsive">
                             <table class="table table-hover align-middle border-0">
                                 <thead class="table-light">
@@ -56,11 +90,10 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for cita in mis_citas %}
+                                    {% for cita in sesiones_hoy %}
                                     <tr>
                                         <td>
                                             <div class="fw-bold text-dark">{{ cita.paciente.get_full_name }}</div>
-                                            <small class="text-muted text-xs">ID: #{{ cita.paciente.id }}</small>
                                         </td>
                                         <td>
                                             <span class="badge bg-primary-subtle text-primary">{{ cita.tratamiento.nombre }}</span>
@@ -70,21 +103,24 @@
                                             <i class="bi bi-clock me-1"></i> {{ cita.fecha|date:"H:i" }}
                                         </td>
                                         <td class="text-center">
-                                            <div class="btn-group btn-group-sm" role="group">
-                                                <!--<a href="{% url 'perfil_paciente' cita.paciente.id %}" class="btn btn-outline-secondary" title="Ver Historial">
-                                                    <i class="bi bi-eye"></i> Ficha
-                                                </a>-->
+                                            {% if cita.puede_evaluarse %}
                                                 <a href="{% url 'nueva_sesion' cita.paciente.id %}" class="btn btn-success text-white" title="Evaluar Sesión">
-                                                    <i class="bi bi-pencil-square"></i>
+                                                    <i class="bi bi-journal-check"></i>
                                                 </a>
-                    
-                                                <form action="{% url 'anular_sesion' pk=cita.id %}" method="POST" onsubmit="return confirm('¿Confirmas que deseas anular la sesión programada para {{ sesion.paciente.get_full_name }}?');">
-                                                    {% csrf_token %}
-                                                    <button type="submit" class="btn btn-danger text-white text-decoration-none" title="Anular sesión">
-                                                        <i class="bi bi-calendar-x-fill"></i>
-                                                    </button>
-                                                </form>
-                                            </div>
+                                            {% else %}
+                                                <span class="btn btn-secondary disabled" title="No disponible hasta la hora de la cita">
+                                                    <i class="bi bi-lock-fill"></i> Evaluar
+                                                </span>
+                                            {% endif %}
+                                            <a href="{% url 'reprogramar_sesion' pk=cita.id %}" class="btn btn-warning text-dark" title="Reprogramar sesión">
+                                                <i class="bi bi-clock-fill"></i>
+                                            </a>
+                                            <form action="{% url 'anular_sesion' pk=cita.id %}" method="POST" onsubmit="return confirm('¿Confirmas que deseas anular la sesión programada para {{ sesion.paciente.get_full_name }}?');" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger text-white" title="Anular sesión">
+                                                    <i class="bi bi-calendar-x-fill"></i>
+                                                </button>
+                                            </form>
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -99,11 +135,57 @@
                     {% endif %}
                 </div>
             </div>
-        </div>
+            
+            <div class="card border-secondary shadow-sm mb-4">
+                <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-calendar-week-fill"></i> Próximas Sesiones Programadas</h5>
+                    <span class="badge bg-light text-dark font-weight-bold">{{ lista_sesiones_futuras|length }}</span>
+                </div>
+                <div class="card-body">
+                    {% if lista_sesiones_futuras %}
+                        <div class="table-responsive">
+                            <table class="table table-striped align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Fecha y Hora</th>
+                                        <th>Paciente</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for s in lista_sesiones_futuras %}
+                                        <tr>
+                                            <td>{{ s.fecha|date:"d/m/Y - H:i" }}</td>
+                                            <td><strong>{{ s.paciente.get_full_name }}</strong></td>
+                                            <td><span class="badge bg-light text-secondary border">Próximamente</span></td>
+                                            <td>
+                                                <a href="{% url 'reprogramar_sesion' pk=s.id %}" class="btn btn-warning text-dark" title="Reprogramar sesión">
+                                                    <i class="bi bi-clock-fill"></i>
+                                                </a>
+                                                <form action="{% url 'anular_sesion' pk=s.id %}" method="POST" onsubmit="return confirm('¿Confirmas que deseas anular la sesión programada para {{ sesion.paciente.get_full_name }}?');" class="d-inline">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-danger text-white" title="Anular sesión">
+                                                        <i class="bi bi-calendar-x-fill"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3 text-muted">
+                            <p class="mb-0">No hay más sesiones agendadas para los próximos días.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
 
-        <!-- COLUMNA DERECHA: PACIENTES ASIGNADOS (40% del ancho) -->
-        <div class="col-lg-5 mb-4">
-            <div class="card shadow-sm border-0 h-100 bg-white">
+        </div> <div class="col-lg-4">
+            
+            <div class="card shadow-sm border-0 bg-white mb-4">
                 <div class="card-header bg-white border-0 pt-3 pb-0">
                     <h5 class="card-title fw-bold text-dark mb-0">
                         <i class="bi bi-people me-2 text-info"></i>Mis Pacientes Asignados
@@ -113,22 +195,26 @@
                     {% if mis_pacientes %}
                         <div class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">
                             {% for paciente in mis_pacientes %}
-                            <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-3 border-bottom">
-                                <div class="d-flex align-items-center">
-                                    <div class="rounded-circle bg-secondary-subtle text-secondary d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; font-weight: bold; font-size: 0.9rem;">
-                                        {{ paciente.first_name|slice:":1" }}{{ paciente.last_name|slice:":1" }}
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-0 text-dark fw-bold">{{ paciente.get_full_name }}</h6>
-                                        <small class="text-muted">{{ paciente.email }}</small>
+                            <div class="list-group-item px-0 py-3 border-bottom">
+                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-secondary-subtle text-secondary d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; font-weight: bold; font-size: 0.9rem;">
+                                            {{ paciente.first_name|slice:":1" }}{{ paciente.last_name|slice:":1" }}
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0 text-dark fw-bold">{{ paciente.get_full_name }}</h6>
+                                            <small class="text-muted">{{ paciente.email }}</small>
+                                        </div>
                                     </div>
                                 </div>
-                                <a href="{% url 'perfil_paciente' paciente.id %}" class="btn btn-sm btn-light border" style="border-radius: 20px;">
-                                    Ver Perfil <i class="bi bi-chevron-right ms-1"></i>
-                                </a>
-                                <a href="{% url 'crear_plan_tratamiento' pk=paciente.id %}" class="btn btn-sm btn-outline-success">
-                                    <i class="bi bi-journal-plus"></i> Crear Plan Individual
-                                </a>
+                                <div class="d-flex gap-2">
+                                    <a href="{% url 'perfil_paciente' paciente.id %}" class="btn btn-sm btn-light border flex-grow-1" style="border-radius: 20px;">
+                                        Ver Perfil <i class="bi bi-chevron-right ms-1"></i>
+                                    </a>
+                                    <a href="{% url 'crear_plan_tratamiento' pk=paciente.id %}" class="btn btn-sm btn-outline-success flex-grow-1" style="border-radius: 20px;">
+                                        <i class="bi bi-journal-plus"></i> Plan Individual
+                                    </a>
+                                </div>
                             </div>
                             {% endfor %}
                         </div>
@@ -139,51 +225,45 @@
                     {% endif %}
                 </div>
             </div>
-        </div>
 
-        <!-- NUEVA TARJETA: PACIENTES SIN TERAPEUTA -->
-        <div class="card shadow-sm border-0 bg-white mt-4">
-            <div class="card-header bg-white border-0 pt-3 pb-0">
-                <h5 class="card-title fw-bold text-dark mb-0">
-                    <i class="bi bi-person-plus text-warning me-2"></i>Pacientes Sin Asignar
-                </h5>
-                <small class="text-muted">Adultos mayores esperando la asignación de un profesional.</small>
-            </div>
-            <div class="card-body">
-                {% if pacientes_sin_asignar %}
-                    <div class="list-group list-group-flush" style="max-height: 300px; overflow-y: auto;">
-                        {% for paciente in pacientes_sin_asignar %}
-                        <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-3 border-bottom">
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-circle bg-warning-subtle text-warning d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; font-weight: bold; font-size: 0.9rem;">
-                                    {{ paciente.first_name|slice:":1" }}{{ paciente.last_name|slice:":1" }}
+            <div class="card shadow-sm border-0 bg-white mb-4">
+                <div class="card-header bg-white border-0 pt-3 pb-0">
+                    <h5 class="card-title fw-bold text-dark mb-0">
+                        <i class="bi bi-person-plus text-warning me-2"></i>Pacientes Sin Asignar
+                    </h5>
+                    <small class="text-muted d-block mt-1">Adultos mayores esperando profesional.</small>
+                </div>
+                <div class="card-body">
+                    {% if pacientes_sin_asignar %}
+                        <div class="list-group list-group-flush" style="max-height: 300px; overflow-y: auto;">
+                            {% for paciente in pacientes_sin_asignar %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-3 border-bottom">
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle bg-warning-subtle text-warning d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; font-weight: bold; font-size: 0.9rem;">
+                                        {{ paciente.first_name|slice:":1" }}{{ paciente.last_name|slice:":1" }}
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 text-dark fw-bold">{{ paciente.get_full_name }}</h6>
+                                        <small class="text-muted">Registrado: {{ paciente.date_joined|date:"d M" }}</small>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h6 class="mb-0 text-dark fw-bold">{{ paciente.get_full_name }}</h6>
-                                    <small class="text-muted">Registrado: {{ paciente.date_joined|date:"d M" }}</small>
-                                </div>
+                                
+                                <form action="{% url 'autoasignar_paciente' paciente.id %}" method="post" class="m-0">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-success" style="border-radius: 20px;">
+                                        <i class="bi bi-check2-circle"></i> Asignarme
+                                    </button>
+                                </form>
                             </div>
-                            
-                            <!-- Botón de acción con Formulario POST por seguridad -->
-                            <form action="{% url 'autoasignar_paciente' paciente.id %}" method="post" class="m-0">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-outline-success" style="border-radius: 20px;">
-                                    <i class="bi bi-check2-circle"></i> Asignarme
-                                </button>
-                            </form>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="text-center py-4 bg-light rounded-3">
-                        <p class="text-muted small mb-0"><i class="bi bi-emoji-sunglasses me-1"></i> ¡Al día! Todos los pacientes tienen terapeuta.</p>
-                    </div>
-                {% endif %}
+                    {% else %}
+                        <div class="text-center py-4 bg-light rounded-3">
+                            <p class="text-muted small mb-0"><i class="bi bi-emoji-sunglasses me-1"></i> ¡Al día! Todos tienen terapeuta.</p>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
-        </div>
-        
-    </div> <!-- Cierre de la columna -->
 
-    </div>
-</div>
+        </div> </div> </div>
 {% endblock %}

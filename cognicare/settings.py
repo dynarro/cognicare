@@ -55,7 +55,7 @@ ROOT_URLCONF = 'cognicare.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -105,7 +105,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'es'
 
-TIME_ZONE = 'UTC'
+TIMEZONE = 'Europe/Madrid'
 
 USE_I18N = True
 
@@ -117,3 +117,6 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'static'
+
+LOGOUT_REDIRECT_URL = '/login/'
+LOGIN_REDIRECT_URL = 'redireccionar_usuario'
